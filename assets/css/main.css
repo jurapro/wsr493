@@ -16,3 +16,6 @@
 .elements>div {
     position: absolute;
 }
+.player {
+   background-color: aquamarine;
+}

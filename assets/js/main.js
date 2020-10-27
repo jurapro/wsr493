@@ -9,7 +9,7 @@ class Drawable {
     constructor(game) {
         this.game = game;
         this.$element = this.createElement();
-        this.postion = {
+        this.position = {
             x: 0,
             y: 0,
         }
@@ -30,15 +30,19 @@ class Drawable {
         return $element;
     }
 
+    removeElement() {
+        this.$element.remove();
+    }
+
     update() {
-        this.postion.x += this.offsets.x;
-        this.postion.y += this.offsets.y;
+        this.position.x += this.offsets.x;
+        this.position.y += this.offsets.y;
     }
 
     draw() {
         this.$element.css({
-            left: this.postion.x + 'px',
-            top: this.postion.y + 'px',
+            left: this.position.x + 'px',
+            top: this.position.y + 'px',
             width: this.size.w + 'px',
             height: this.size.h + 'px',
         })
@@ -46,30 +50,30 @@ class Drawable {
 
     isCollision(elements) {
         let a = {
-            x1: this.postion.x,
-            x2: this.postion.x + this.size.w,
-            y1: this.postion.y,
-            y2: this.postion.y + this.size.h,
+            x1: this.position.x,
+            x2: this.position.x + this.size.w,
+            y1: this.position.y,
+            y2: this.position.y + this.size.h,
         }
         let b = {
-            x1: elements.postion.x,
-            x2: elements.postion.x + elements.size.w,
-            y1: elements.postion.y,
-            y2: elements.postion.y + elements.size.h,
+            x1: elements.position.x,
+            x2: elements.position.x + elements.size.w,
+            y1: elements.position.y,
+            y2: elements.position.y + elements.size.h,
         }
         return a.x1 < b.x2 && b.x1 < a.x2 && a.y1 < b.y2 && b.y1 < a.y2;
     }
 
     isLeftBorderCollision() {
-        return this.postion.x < this.speedPerFrame;
+        return this.position.x < this.speedPerFrame;
     }
 
     isRightBorderCollision() {
-        return this.postion.x > this.game.$zone.width() - this.size.w - this.speedPerFrame;
+        return this.position.x > this.game.$zone.width() - this.size.w - this.speedPerFrame;
     }
 
     isTopBorderCollision() {
-        return this.postion.y < this.speedPerFrame;
+        return this.position.y < this.speedPerFrame;
     }
 }
 
@@ -82,7 +86,7 @@ class Player extends Drawable {
             h: 20,
             w: 100
         };
-        this.postion = {
+        this.position = {
             x: this.game.$zone.width() / 2 - this.size.w / 2,
             y: this.game.$zone.height() - this.size.h
         };
@@ -106,12 +110,12 @@ class Player extends Drawable {
     }
 
     update() {
-        if (this.isLeftBorderCollision() && this.keys.ArrowLeft ) {
-            this.postion.x = 0;
+        if (this.isLeftBorderCollision() && this.keys.ArrowLeft) {
+            this.position.x = 0;
             return;
         }
         if (this.isRightBorderCollision() && this.keys.ArrowRight) {
-            this.postion.x = this.game.$zone.width() - this.size.w;
+            this.position.x = this.game.$zone.width() - this.size.w;
             return;
         }
 
@@ -138,7 +142,7 @@ class Ball extends Drawable {
             h: 20,
             w: 20
         };
-        this.postion = {
+        this.position = {
             x: this.game.$zone.width() / 2 - this.size.w / 2,
             y: this.speedPerFrame + 5,
         };
@@ -147,10 +151,7 @@ class Ball extends Drawable {
     }
 
     update() {
-        if (this.isCollision(this.game.player)) {
-            this.changeDirection();
-        }
-        if (this.isTopBorderCollision()) {
+        if (this.isCollision(this.game.player) || this.isTopBorderCollision()) {
             this.changeDirection();
         }
 
@@ -179,6 +180,26 @@ class Ball extends Drawable {
     }
 }
 
+class Block extends Drawable {
+    constructor(game) {
+        super(game);
+        this.size = {
+            h: 20,
+            w: 100
+        };
+    }
+
+    update() {
+        if (this.isCollision(this.game.ball)) {
+            if (this.game.remove(this)) {
+                this.removeElement();
+                this.game.ball.changeDirection();
+            }
+        }
+        super.update();
+    }
+}
+
 class Game {
     //Базовые настройки игры
     constructor() {
@@ -186,6 +207,8 @@ class Game {
         this.elements = [];
         this.player = this.generate(Player);
         this.ball = this.generate(Ball);
+        //this.blockGenerate(Block, {x: 200, y: 200});
+        this.blocksGenerate();
     }
 
     // Генерация элемента
@@ -193,6 +216,27 @@ class Game {
         let element = new ClassName(this);
         this.elements.push(element);
         return element;
+    }
+
+    remove(element) {
+        let ind = this.elements.indexOf(element);
+        if (ind === -1) return false;
+        return this.elements.splice(ind, 1);
+    }
+
+    // Генерация блока
+    blockGenerate(ClassName, position) {
+        let block = this.generate(ClassName);
+        block.position = position;
+    }
+
+    // Генерация блоков в игре
+    blocksGenerate() {
+        for (let x = 0; x < this.$zone.width(); x += 200) {
+            for (let y = 100; y < 300; y += 100) {
+                this.blockGenerate(Block, {x: x, y: y});
+            }
+        }
     }
 
     //старт игры

@@ -3,23 +3,33 @@
     margin: 0;
     box-sizing: border-box;
 }
+
 #game {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
     position: relative;
 }
+
 .elements {
     width: 100%;
     height: 100%;
 }
-.elements>div {
+
+.elements > div {
     position: absolute;
 }
+
 .player {
-   background-color: aquamarine;
+    background-color: aquamarine;
+    border-radius: 1rem;
 }
-.ball  {
+
+.ball {
     background-color: red;
-    border-radius:50%;
+    border-radius: 50%;
+}
+.block {
+    background-color: brown;
+
 }

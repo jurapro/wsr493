@@ -3,17 +3,21 @@
     margin: 0;
     box-sizing: border-box;
 }
+:root {
+    --w-panel:80px;
+}
 
 #game {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    position: relative;
+
 }
 
 .elements {
     width: 100%;
-    height: 100%;
+    height: calc(100% - var(--w-panel));
+    position: relative;
 }
 
 .elements > div {
@@ -31,5 +35,8 @@
 }
 .block {
     background-color: brown;
-
+}
+.panel {
+    background-color: cadetblue;
+    height: var(--w-panel);
 }

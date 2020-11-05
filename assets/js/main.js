@@ -25,9 +25,7 @@ class Drawable {
     }
 
     createElement() {
-        let $element = $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
-        this.game.$zone.append($element);
-        return $element;
+        return $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
     }
 
     removeElement() {
@@ -148,6 +146,11 @@ class Ball extends Drawable {
         };
 
         this.offsets.y = this.speedPerFrame;
+        this.bindKeyEvents();
+    }
+
+    bindKeyEvents() {
+        document.addEventListener('block-collision', this.changeDirection.bind(this));
     }
 
     update() {
@@ -191,10 +194,13 @@ class Block extends Drawable {
 
     update() {
         if (this.isCollision(this.game.ball)) {
-            if (this.game.remove(this)) {
-                this.removeElement();
-                this.game.ball.changeDirection();
-            }
+
+            let remove = document.dispatchEvent(new CustomEvent(
+                'block-collision', {
+                    detail: {element: this}
+                }));
+
+            this.$element.remove();
         }
         super.update();
     }
@@ -207,19 +213,26 @@ class Game {
         this.elements = [];
         this.player = this.generate(Player);
         this.ball = this.generate(Ball);
-        //this.blockGenerate(Block, {x: 200, y: 200});
         this.blocksGenerate();
+        this.bindKeyEvents();
+    }
+
+    bindKeyEvents() {
+        document.addEventListener('block-collision', this.removeElement.bind(this));
     }
 
     // Генерация элемента
     generate(ClassName) {
         let element = new ClassName(this);
         this.elements.push(element);
+        this.$zone.append(element.$element);
         return element;
     }
 
-    remove(element) {
+    removeElement(event) {
+        let element = event.detail.element;
         let ind = this.elements.indexOf(element);
+
         if (ind === -1) return false;
         return this.elements.splice(ind, 1);
     }
@@ -233,7 +246,7 @@ class Game {
     // Генерация блоков в игре
     blocksGenerate() {
         for (let x = 0; x < this.$zone.width(); x += 200) {
-            for (let y = 100; y < 300; y += 100) {
+            for (let y = 100; y < 400; y += 100) {
                 this.blockGenerate(Block, {x: x, y: y});
             }
         }

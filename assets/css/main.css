@@ -39,4 +39,11 @@
 .panel {
     background-color: cadetblue;
     height: var(--w-panel);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.panel span {
+    font-size: 1.5rem;
+    color: white;
 }

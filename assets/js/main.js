@@ -22,16 +22,19 @@ class Drawable {
             y: 0,
         }
         this.speedPerFrame = 0;
+        this.bindKeyEvents();
     }
 
     createElement() {
-        let $element = $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
-        this.game.$zone.append($element);
-        return $element;
+        return $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
     }
 
     removeElement() {
         this.$element.remove();
+    }
+
+    bindKeyEvents() {
+        return null;
     }
 
     update() {
@@ -75,6 +78,8 @@ class Drawable {
     isTopBorderCollision() {
         return this.position.y < this.speedPerFrame;
     }
+
+
 }
 
 //класс для игрока
@@ -95,7 +100,7 @@ class Player extends Drawable {
             ArrowRight: false
         }
         this.speedPerFrame = 20;
-        this.bindKeyEvents();
+
     }
 
     bindKeyEvents() {
@@ -137,6 +142,7 @@ class Player extends Drawable {
 class Ball extends Drawable {
     constructor(game) {
         super(game);
+
         this.speedPerFrame = 5;
         this.size = {
             h: 20,
@@ -158,8 +164,12 @@ class Ball extends Drawable {
         if (this.isLeftBorderCollision() || this.isRightBorderCollision()) {
             this.changeDirectionX();
         }
-
         super.update();
+    }
+
+    //установка обработчика события столкновение с блоком
+    bindKeyEvents() {
+        document.addEventListener('block-collision', this.changeDirection.bind(this));
     }
 
     changeDirectionY() {
@@ -178,23 +188,28 @@ class Ball extends Drawable {
     changeDirectionX() {
         this.offsets.x *= -1;
     }
+
 }
 
 class Block extends Drawable {
     constructor(game) {
         super(game);
         this.size = {
-            h: 20,
-            w: 100
+            h: 50,
+            w: 150
         };
+
     }
 
     update() {
         if (this.isCollision(this.game.ball)) {
-            if (this.game.remove(this)) {
-                this.removeElement();
-                this.game.ball.changeDirection();
-            }
+
+            document.dispatchEvent(new CustomEvent(
+                'block-collision', {
+                    detail: {element: this}
+                }));
+
+            this.removeElement();
         }
         super.update();
     }
@@ -203,38 +218,58 @@ class Block extends Drawable {
 class Game {
     //Базовые настройки игры
     constructor() {
+        this.options = {
+            scope: 0
+        };
+        this.$panel = $('#game .panel');
         this.$zone = $('#game .elements');
         this.elements = [];
         this.player = this.generate(Player);
         this.ball = this.generate(Ball);
-        //this.blockGenerate(Block, {x: 200, y: 200});
-        this.blocksGenerate();
+        this.blocksGenerate({rows: 3, gap: 50});
+        this.bindKeyEvents();
+    }
+
+    bindKeyEvents() {
+        document.addEventListener('block-collision', this.blockCollision.bind(this));
     }
 
     // Генерация элемента
     generate(ClassName) {
         let element = new ClassName(this);
         this.elements.push(element);
+        this.$zone.append(element.$element);
         return element;
     }
 
-    remove(element) {
+    blockCollision(event) {
+        this.options.scope++;
+        this.remove(event);
+    }
+
+    remove(event) {
+        let element = event.detail.element;
+
         let ind = this.elements.indexOf(element);
         if (ind === -1) return false;
         return this.elements.splice(ind, 1);
     }
 
     // Генерация блока
-    blockGenerate(ClassName, position) {
-        let block = this.generate(ClassName);
+    blockGenerate(position) {
+        let block = this.generate(Block);
         block.position = position;
     }
 
     // Генерация блоков в игре
-    blocksGenerate() {
-        for (let x = 0; x < this.$zone.width(); x += 200) {
-            for (let y = 100; y < 300; y += 100) {
-                this.blockGenerate(Block, {x: x, y: y});
+    blocksGenerate(options) {
+        let {w: blockW, h: blockH} = (new Block).size;
+        let {gap: gap, rows: rows} = options;
+
+        for (let y = 1; y <= rows; y++) {
+            for (let x = gap; x < this.$zone.width() - blockW; x += blockW + gap) {
+                let position = {x: x, y: y * (blockH + gap)};
+                this.blockGenerate(position);
             }
         }
     }
@@ -248,6 +283,7 @@ class Game {
     loop() {
         requestAnimationFrame(() => {
             this.updateElements();
+            this.updateOptions();
             this.loop();
         });
     }
@@ -258,6 +294,10 @@ class Game {
             element.update();
             element.draw();
         })
+    }
+
+    updateOptions() {
+        this.$panel.html('<span>Количество очков: ' + this.options.scope + '</span>');
     }
 }
 

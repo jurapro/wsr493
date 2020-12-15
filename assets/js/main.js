@@ -79,7 +79,9 @@ class Drawable {
         return this.position.y < this.speedPerFrame;
     }
 
-
+    isBottomBorderCollision() {
+        return this.position.y + this.speedPerFrame > this.game.$zone.height();
+    }
 }
 
 //класс для игрока
@@ -115,27 +117,22 @@ class Player extends Drawable {
     }
 
     update() {
-        if (this.isLeftBorderCollision() && this.keys.ArrowLeft) {
-            this.position.x = 0;
-            return;
-        }
-        if (this.isRightBorderCollision() && this.keys.ArrowRight) {
-            this.position.x = this.game.$zone.width() - this.size.w;
-            return;
-        }
-
         switch (true) {
             case this.keys.ArrowLeft:
-                this.offsets.x = -this.speedPerFrame;
+                if (this.isLeftBorderCollision()) {
+                    this.position.x = 0;
+                    break;
+                }
+                this.position.x -= this.speedPerFrame;
                 break;
             case this.keys.ArrowRight:
-                this.offsets.x = this.speedPerFrame;
+                if (this.isRightBorderCollision()) {
+                    this.position.x = this.game.$zone.width() - this.size.w;
+                    break;
+                }
+                this.position.x += this.speedPerFrame;
                 break;
-            default:
-                this.offsets.x = 0;
         }
-
-        super.update();
     }
 }
 
@@ -157,12 +154,18 @@ class Ball extends Drawable {
     }
 
     update() {
-        if (this.isCollision(this.game.player) || this.isTopBorderCollision()) {
+        if (this.isCollision(this.game.player)) {
+            document.dispatchEvent(new CustomEvent('player-collision'));
             this.changeDirection();
         }
-
+        if (this.isTopBorderCollision()) {
+            this.changeDirection();
+        }
         if (this.isLeftBorderCollision() || this.isRightBorderCollision()) {
             this.changeDirectionX();
+        }
+        if (this.isBottomBorderCollision()) {
+            document.dispatchEvent(new CustomEvent('missed-ball'));
         }
         super.update();
     }
@@ -219,8 +222,13 @@ class Game {
     //Базовые настройки игры
     constructor() {
         this.options = {
-            scope: 0
+            score: 0,
+            scoreRate: 1,
+            pause: false
         };
+        this.keys = {
+            Escape: false
+        }
         this.$panel = $('#game .panel');
         this.$zone = $('#game .elements');
         this.elements = [];
@@ -232,6 +240,15 @@ class Game {
 
     bindKeyEvents() {
         document.addEventListener('block-collision', this.blockCollision.bind(this));
+        document.addEventListener('player-collision', this.playerCollision.bind(this));
+        document.addEventListener('missed-ball', this.endGame.bind(this));
+        document.addEventListener('keyup', ev => this.changeKeyStatus(ev.code));
+    }
+
+    changeKeyStatus(code) {
+        if (code in this.keys) {
+            this.keys[code] = !this.keys[code];
+        }
     }
 
     // Генерация элемента
@@ -243,8 +260,13 @@ class Game {
     }
 
     blockCollision(event) {
-        this.options.scope++;
+        this.options.score += this.options.scoreRate;
+        this.options.scoreRate++;
         this.remove(event);
+    }
+
+    playerCollision() {
+        this.options.scoreRate = 1;
     }
 
     remove(event) {
@@ -282,8 +304,11 @@ class Game {
     //бесконечный игровой цикл
     loop() {
         requestAnimationFrame(() => {
-            this.updateElements();
-            this.updateOptions();
+            if (!this.options.pause) {
+                this.updateElements();
+                this.updateOptions();
+            }
+            this.updatePause();
             this.loop();
         });
     }
@@ -297,8 +322,23 @@ class Game {
     }
 
     updateOptions() {
-        this.$panel.html('<span>Количество очков: ' + this.options.scope + '</span>');
+        this.$panel.html('<span>Количество очков: ' + this.options.score + '</span>');
     }
+
+    updatePause() {
+        this.options.pause = this.keys.Escape;
+        if (this.options.pause) {
+            this.$panel.addClass('pause');
+        } else {
+            this.$panel.removeClass('pause');
+        }
+    }
+
+    endGame() {
+        this.keys.Escape = true;
+        alert('Вы проиграли');
+    }
+
 }
 
 const game = new Game();

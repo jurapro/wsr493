@@ -3,8 +3,9 @@
     margin: 0;
     box-sizing: border-box;
 }
+
 :root {
-    --w-panel:80px;
+    --w-panel: 80px;
 }
 
 #game {
@@ -33,21 +34,59 @@
     background-color: red;
     border-radius: 50%;
 }
+
 .block {
     background-color: brown;
 }
+
 .panel {
     background-color: cadetblue;
     height: var(--w-panel);
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 1rem;
 }
 
 .pause {
     background-color: red;
 }
+
 .panel span {
     font-size: 1.5rem;
     color: white;
+}
+
+.end-game {
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    position: absolute;
+    background-color: rgba(0, 0, 0, .5);
+
+    display: none;
+}
+
+.end-game .result {
+    width: 400px;
+    height: 400px;
+    margin: auto;
+    background-color: wheat;
+    padding: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    justify-content: center;
+    text-align: center;
+    gap: 2rem;
+
+    font-size: 1.5rem;
+    color: white;
+}
+.result button {
+    width: 50%;
+    font-size: 1.5rem;
+    margin: auto;
 }

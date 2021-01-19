@@ -222,26 +222,36 @@ class Game {
     //Базовые настройки игры
     constructor() {
         this.options = {
+            godMode: true,
             score: 0,
             scoreRate: 1,
-            pause: false
+            status: 'progress',
+            pause: false,
+            timer: {
+                second: 0,
+                tik: 0
+            }
         };
         this.keys = {
-            Escape: false
+            Escape: false,
+            Space: false,
         }
+
         this.$panel = $('#game .panel');
         this.$zone = $('#game .elements');
+        this.$endGame = $('#game .end-game');
+
         this.elements = [];
         this.player = this.generate(Player);
         this.ball = this.generate(Ball);
-        this.blocksGenerate({rows: 3, gap: 50});
+        this.blocksGenerate({rows: 1, gap: 50});
         this.bindKeyEvents();
     }
 
     bindKeyEvents() {
         document.addEventListener('block-collision', this.blockCollision.bind(this));
         document.addEventListener('player-collision', this.playerCollision.bind(this));
-        document.addEventListener('missed-ball', this.endGame.bind(this));
+        document.addEventListener('missed-ball', this.losingGame.bind(this));
         document.addEventListener('keyup', ev => this.changeKeyStatus(ev.code));
     }
 
@@ -306,7 +316,7 @@ class Game {
         requestAnimationFrame(() => {
             if (!this.options.pause) {
                 this.updateElements();
-                this.updateOptions();
+                this.updateGame();
             }
             this.updatePause();
             this.loop();
@@ -321,8 +331,17 @@ class Game {
         })
     }
 
-    updateOptions() {
-        this.$panel.html('<span>Количество очков: ' + this.options.score + '</span>');
+    updateGame() {
+        if (this.options.godMode) {
+            this.godMode();
+        }
+
+
+        if (this.isWin()) {
+            this.winGame();
+        }
+        this.updateTime();
+        this.updatePanel();
     }
 
     updatePause() {
@@ -334,11 +353,136 @@ class Game {
         }
     }
 
-    endGame() {
-        this.keys.Escape = true;
-        alert('Вы проиграли');
+    updateTime() {
+        this.options.timer.tik++;
+        if (this.options.timer.tik === 60) {
+            this.options.timer.tik = 0;
+            this.options.timer.second++;
+        }
     }
 
+    updatePanel() {
+        let {min, sec} = this.getFormattedTime(this.options.timer.second);
+        this.$panel.html(`<span>Количество очков: ${this.options.score}</span>
+            <span> Таймер: ${min}:${sec} </span>`);
+    }
+
+    losingGame() {
+        this.keys.Escape = true;
+        this.options.status = 'losing';
+
+        this.showResult();
+    }
+
+    winGame() {
+        this.keys.Escape = true;
+        this.options.status = 'win';
+
+        this.showResult();
+    }
+
+    getFormattedTime(sec) {
+        let min = Math.floor(sec / 60);
+        min = (min < 10) ? '0' + min : min;
+        sec = sec % 60;
+        sec = (sec < 10) ? '0' + sec : sec;
+
+        return {
+            min: min,
+            sec: sec
+        }
+    }
+
+    showResult() {
+        let finalResult = {
+            'score': this.options.score,
+            'time': this.getFormattedTime(this.options.timer.second)
+        }
+        let message = '';
+        const result = this.$endGame.children('.result');
+
+
+        switch (this.options.status) {
+            case "losing":
+                message = 'Вы проиграли';
+                result.css({
+                    backgroundColor: 'red'
+                });
+                break;
+            case "win":
+                message = 'Вы выиграли';
+                result.css({
+                    backgroundColor: 'green'
+                });
+                break;
+        }
+
+        result.html(`
+            <h2>${message}</h2>
+            <span>Очки: ${finalResult.score}</span>
+            <span> Таймер: ${finalResult.time.min}:${finalResult.time.sec} </span>
+            <button>Играть заново</button>
+        `);
+        const button = document.querySelector('.result button');
+        button.addEventListener('click', this.restart.bind(this));
+
+        this.$endGame.css({
+            display: 'flex'
+        });
+    }
+
+    isWin() {
+        return this.elements.filter(el => el.constructor.name === 'Block').length === 0;
+    }
+
+    godMode() {
+        switch (true) {
+            case this.keys.Space:
+                this.killAll();
+                break;
+        }
+    }
+
+    killAll() {
+        let block = this.elements.filter(el => el.constructor.name === 'Block');
+
+        block.forEach(el => {
+            el.removeElement();
+            document.dispatchEvent(new CustomEvent(
+                'block-collision', {
+                    detail: {element: el}
+                }));
+        });
+    }
+
+    restart() {
+        this.newGame();
+        this.$endGame.css('display', 'none');
+    }
+
+    newGame() {
+        this.$zone.html('');
+        this.options = {
+            godMode: true,
+            score: 0,
+            scoreRate: 1,
+            status: 'progress',
+            pause: false,
+            timer: {
+                second: 0,
+                tik: 0
+            }
+        };
+        this.keys = {
+            Escape: false,
+            Space: false,
+        }
+
+        this.elements = [];
+        this.player = this.generate(Player);
+        this.ball = this.generate(Ball);
+        this.blocksGenerate({rows: 1, gap: 50});
+    }
 }
 
 const game = new Game();

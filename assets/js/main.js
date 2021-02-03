@@ -429,6 +429,12 @@ class Game {
         this.$endGame.css({
             display: 'flex'
         });
+
+        fetch('result.php')
+            .then(data => data.text())
+            .then(text => {
+                result.append(text);
+            });
     }
 
     isWin() {
